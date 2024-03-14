@@ -1,13 +1,7 @@
 const { init, run } = require('./genetic');
 
-module.exports = {
-	name: 'Tool: Genetic Stat Balancer',
-
-	disabled: true,
-
-	init: async function () {
-		await init();
+(async () => {
+	await init();
 		
-		await run();
-	}
-};
+	await run();
+})();

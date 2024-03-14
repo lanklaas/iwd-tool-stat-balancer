@@ -45,7 +45,8 @@ const buildNode = async () => {
 		promises: {}
 	};	
 
-	node.worker = childProcess.fork('./mods/iwd-balance/genetic/node', [JSON.stringify(node)]);
+	//node.worker = childProcess.fork('./mods/iwd-balance/genetic/node', [JSON.stringify(node)]);
+	node.worker = childProcess.fork('./genetic/node', [JSON.stringify(node)]);
 	node.worker.on('message', onMessage.bind(null, node));
 
 	node.run = run.bind(null, node);
