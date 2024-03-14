@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use super::{requirements::Role, Config};
 
 const CONFIG: Config = Config::default();
@@ -26,11 +28,25 @@ pub enum StaticRelations {
     Nine([&'static str; 9]),
 }
 
-pub struct Stats([Stat; 32]);
+#[derive(Debug)]
+pub struct Stats(pub Vec<Stat>);
+
+impl Deref for Stats {
+    type Target = [Stat];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Stats {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl Default for Stats {
     fn default() -> Self {
-        Self([
+        Self(vec![
             Stat {
                 stat: "avoidChance",
                 desc: "Gives the player a chance to completely avoid damage",
