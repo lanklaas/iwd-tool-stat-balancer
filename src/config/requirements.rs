@@ -2,7 +2,7 @@
 pub enum Role {
     Dps(usize),
     Tank(usize),
-    Both { dps: usize, tank: usize },
+    Both { dps: f32, tank: usize },
 }
 
 #[derive(Debug)]
@@ -29,23 +29,32 @@ impl Requirements {
     pub const fn default() -> Self {
         Self {
             seconds_to_kill_mob: Tier1 {
-                entry: Role::Both { dps: 5, tank: 10 },
-                mid: Role::Both { dps: 3, tank: 8 },
+                entry: Role::Both { dps: 5.0, tank: 10 },
+                mid: Role::Both { dps: 3.0, tank: 8 },
             },
             seconds_to_kill_boss: Tier2 {
                 high: Role::Both {
-                    dps: 180,
+                    dps: 180.0,
                     tank: 900,
                 },
-                op: Role::Both { dps: 45, tank: 180 },
+                op: Role::Both {
+                    dps: 45.0,
+                    tank: 180,
+                },
             },
             seconds_to_be_killed_by_mob: Tier1 {
-                entry: Role::Both { dps: 10, tank: 20 },
-                mid: Role::Both { dps: 12, tank: 40 },
+                entry: Role::Both {
+                    dps: 10.0,
+                    tank: 20,
+                },
+                mid: Role::Both {
+                    dps: 12.0,
+                    tank: 40,
+                },
             },
             seconds_to_be_killed_by_boss: Tier2 {
-                high: Role::Both { dps: 7, tank: 40 },
-                op: Role::Both { dps: 9, tank: 80 },
+                high: Role::Both { dps: 7.0, tank: 40 },
+                op: Role::Both { dps: 9.0, tank: 80 },
             },
         }
     }

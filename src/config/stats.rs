@@ -3,344 +3,310 @@ use super::{requirements::Role, Config};
 const CONFIG: Config = Config::default();
 const LEVEL: usize = CONFIG.level_min;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Stat {
-    stat: &'static str,
-    desc: &'static str,
-    relates_to: [Option<&'static str>; 10],
-    max: Option<usize>,
-    roles: Role,
-    no_scale: bool,
-    initial: usize,
-    min: Option<f32>,
+    pub stat: &'static str,
+    pub desc: &'static str,
+    pub relates_to: Option<StaticRelations>,
+    pub max: Option<usize>,
+    pub roles: Option<Role>,
+    pub no_scale: bool,
+    pub initial: Option<usize>,
+    pub min: Option<f32>,
+    pub disabled: bool,
+    pub is_static: bool,
 }
 
-impl Stat {
-    pub const fn default() -> [Self; 5] {
-        [
-            Self {
+#[derive(Debug)]
+pub enum StaticRelations {
+    One([&'static str; 1]),
+    Two([&'static str; 2]),
+    Four([&'static str; 4]),
+    Five([&'static str; 5]),
+    Nine([&'static str; 9]),
+}
+
+pub struct Stats([Stat; 32]);
+
+impl Default for Stats {
+    fn default() -> Self {
+        Self([
+            Stat {
                 stat: "avoidChance",
                 desc: "Gives the player a chance to completely avoid damage",
-                relates_to: [
-                    "blockAttackChance".into(),
-                    "blockSpellChance".into(),
-                    "dodgeAttackChance".into(),
-                    "dodgeSpellChance".into(),
-                    None,
-                ],
+                relates_to: Some(StaticRelations::Four([
+                    "blockAttackChance",
+                    "blockSpellChance",
+                    "dodgeAttackChance",
+                    "dodgeSpellChance",
+                ])),
                 max: Some(100),
-                roles: Role::Tank(1),
-                initial: 10,
+                roles: Some(Role::Tank(1)),
+                initial: Some(10),
+                ..Default::default()
             },
-            Self {
+            Stat {
                 stat: "mainStat",
                 desc: "Grants a character\"s main stat",
-                relates_to: [
-                    "str".into(),
-                    "int".into(),
-                    "dex".into(),
-                    "allAttributes".into(),
-                ],
-                roles: Role::Both { dps: 1, tank: 1 },
-                initial: (LEVEL * 5) / CONFIG.pieces_of_gear,
+                relates_to: Some(StaticRelations::Four([
+                    "str",
+                    "int",
+                    "dex",
+                    "allAttributes",
+                ])),
+                roles: Some(Role::Both { dps: 1., tank: 1 }),
+                initial: Some((LEVEL * 5) / CONFIG.pieces_of_gear),
+                ..Default::default()
             },
-            Self {
+            Stat {
                 stat: "playerDmgBase",
                 desc: "Base player damage dealt",
-                relates_to: ["playerDmgBase".into(), ...=None],
+                relates_to: Some(StaticRelations::One(["playerDmgBase"])),
                 no_scale: true,
-                min: 0.1.into(),
-                max: None,
+                min: Some(0.1),
+                ..Default::default()
             },
-        ]
+            Stat {
+                stat: "mobDmgBase",
+                desc: "Base mob damage dealt",
+                relates_to: Some(StaticRelations::One(["mobDmgBase"])),
+                no_scale: true,
+                min: Some(0.1),
+                ..Default::default()
+            },
+            Stat {
+                stat: "bossDmgBase",
+                desc: "Base boss damage dealt",
+                relates_to: Some(StaticRelations::One(["bossDmgBase"])),
+                no_scale: true,
+                min: Some(0.1),
+                ..Default::default()
+            },
+            Stat {
+                stat: "playerDmgMult",
+                desc: "Multiplier for player damage dealt",
+                relates_to: Some(StaticRelations::One(["statMult"])),
+                no_scale: true,
+                ..Default::default()
+            },
+            Stat {
+                stat: "mobDmgMult",
+                desc: "Multiplier for regular mob damage dealt",
+                relates_to: Some(StaticRelations::One(["statMult"])),
+                min: Some(0.1),
+                ..Default::default()
+            },
+            Stat {
+                stat: "bossDmgMult",
+                desc: "Multiplier for boss mob damage dealt",
+                relates_to: Some(StaticRelations::One(["statMult"])),
+                min: Some(0.1),
+                ..Default::default()
+            },
+            Stat {
+                stat: "mobHpMult",
+                desc: "Multiplier for regular mob hp",
+                relates_to: Some(StaticRelations::One(["statMult"])),
+                min: Some(0.1),
+                ..Default::default()
+            },
+            Stat {
+                stat: "bossHpMult",
+                desc: "Multiplier for boss hp",
+                relates_to: Some(StaticRelations::One(["statMult"])),
+                min: Some(0.1),
+                ..Default::default()
+            },
+            Stat {
+                stat: "globalDmgPercent",
+                desc: "Blanket multiplier for all damage types",
+                relates_to: Some(StaticRelations::Nine([
+                    "dmgPercent",
+                    "physicalPercent",
+                    "spellPercent",
+                    "physicalPercent",
+                    "elementArcanePercent",
+                    "elementFrostPercent",
+                    "elementFirePercent",
+                    "elementHolyPercent",
+                    "elementPoisonPercent",
+                ])),
+                roles: Some(Role::Dps(1)),
+                ..Default::default()
+            },
+            Stat {
+                stat: "globalCritChance",
+                desc: "Chance to deal critical damage for all forms of damage",
+                relates_to: Some(StaticRelations::One(["addCritChance"])),
+                max: Some(100),
+                roles: Some(Role::Dps(1)),
+                ..Default::default()
+            },
+            Stat {
+                stat: "attackSpellCritChance",
+                desc: "Chance to deal critical damage for all attacks or spells",
+                relates_to: Some(StaticRelations::Two([
+                    "addAttackCritChance",
+                    "addSpellCritChance",
+                ])),
+                max: Some(100),
+                roles: Some(Role::Dps(1)),
+                ..Default::default()
+            },
+            Stat {
+                stat: "globalCritMultiplier",
+                desc: "Multiplier for all forms of critical damage",
+                relates_to: Some(StaticRelations::One(["addCritMultiplier"])),
+                roles: Some(Role::Dps(1)),
+                ..Default::default()
+            },
+            Stat {
+                stat: "attackSpellCritMultiplier",
+                desc: "Multiplier for all critical attacks or spells",
+                relates_to: Some(StaticRelations::Two([
+                    "addAttackCritMultiplier",
+                    "addSpellCritMultiplier",
+                ])),
+                roles: Some(Role::Dps(1)),
+                ..Default::default()
+            },
+            Stat {
+                stat: "baseCritChance",
+                desc: "Base crit chance for characters",
+                relates_to: Some(StaticRelations::One(["baseCritChance"])),
+                initial: Some(1),
+                max: Some(100),
+                no_scale: true,
+                ..Default::default()
+            },
+            Stat {
+                stat: "baseCritMultiplier",
+                desc: "Base crit multiplier for characters",
+                relates_to: Some(StaticRelations::One(["baseCritMultiplier"])),
+                initial: Some(150),
+                min: Some(150.),
+                no_scale: true,
+                is_static: true,
+                ..Default::default()
+            },
+            //Mitigate
+            Stat {
+                stat: "elementAllResist",
+                desc: "Resistance against all elemental damage",
+                relates_to: Some(StaticRelations::One(["elementAllResist"])),
+                roles: Some(Role::Both { tank: 1, dps: 0.3 }),
+                ..Default::default()
+            },
+            Stat {
+                stat: "elementResist",
+                desc: "Resistance against specific forms of elemental damage",
+                relates_to: Some(StaticRelations::Five([
+                    "elementArcaneResist",
+                    "elementFrostResist",
+                    "elementFireResist",
+                    "elementHolyResist",
+                    "elementPoisonResist",
+                ])),
+                roles: Some(Role::Both { tank: 1, dps: 0.3 }),
+                ..Default::default()
+            },
+            Stat {
+                stat: "armor",
+                desc: "Mitigates physical damage",
+                relates_to: Some(StaticRelations::One(["armor"])),
+                roles: Some(Role::Both { tank: 1, dps: 0.5 }),
+                initial: Some(LEVEL * 30),
+                ..Default::default()
+            },
+            Stat {
+                stat: "armorEffectMult",
+                desc: "armorEffectMult",
+                no_scale: true,
+                ..Default::default()
+            },
+            //Life
+            Stat {
+                stat: "playerHpBase",
+                desc: "Initial player hp",
+                relates_to: Some(StaticRelations::One(["playerHpBase"])),
+                no_scale: true,
+                min: Some(10.),
+                ..Default::default()
+            },
+            Stat {
+                stat: "mobHpBase",
+                desc: "Initial mob hp",
+                relates_to: Some(StaticRelations::One(["mobHpBase"])),
+                no_scale: true,
+                min: Some(1.),
+                ..Default::default()
+            },
+            Stat {
+                stat: "bossHpBase",
+                desc: "Initial boss hp",
+                relates_to: Some(StaticRelations::One(["bossHpBase"])),
+                no_scale: true,
+                min: Some(10.),
+                ..Default::default()
+            },
+            Stat {
+                stat: "vit",
+                desc: "Grants extra hp",
+                relates_to: Some(StaticRelations::One(["vit"])),
+                roles: Some(Role::Both { tank: 1, dps: 0.3 }),
+                ..Default::default()
+            },
+            Stat {
+                stat: "vitToHpMultiplier",
+                desc: "Defines how much hp a player gets for each point of vit",
+                relates_to: Some(StaticRelations::One(["statScales.vitToHp"])),
+                ..Default::default()
+            },
+            Stat {
+                stat: "regenHp",
+                desc: "Regenerates HP per tick",
+                relates_to: Some(StaticRelations::One(["regenHp"])),
+                roles: Some(Role::Both { tank: 1, dps: 0.2 }),
+                ..Default::default()
+            },
+            Stat {
+                stat: "lifeOnHit",
+                desc: "Gains life on physical damage dealt",
+                relates_to: Some(StaticRelations::One(["lifeOnHit"])),
+                roles: Some(Role::Both { tank: 1, dps: 0.3 }),
+                disabled: true,
+                ..Default::default()
+            },
+            //Mana
+            Stat {
+                stat: "manaMax",
+                desc: "Grants extra mana",
+                relates_to: Some(StaticRelations::One(["manaMax"])),
+                disabled: true,
+                ..Default::default()
+            },
+            Stat {
+                stat: "regenMana",
+                desc: "Grants mana per tick",
+                relates_to: Some(StaticRelations::One(["regenMana"])),
+                disabled: true,
+                ..Default::default()
+            },
+            //Other
+            Stat {
+                stat: "attackSpellSpeed",
+                desc: "Grants faster attack/cast times",
+                relates_to: Some(StaticRelations::Two(["attackSpeed", "castSpeed"])),
+                disabled: true,
+                ..Default::default()
+            },
+            Stat {
+                stat: "statMultPerLevel",
+                desc: "Multiplier for all stats per level",
+                no_scale: true,
+                min: Some(0.1),
+                ..Default::default()
+            },
+        ])
     }
 }
-// module.exports = [
-
-// 	{
-// 		stat: "mobDmgBase",
-// 		desc: "Base mob damage dealt",
-// 		relatesTo: [
-// 			"mobDmgBase"
-// 		],
-// 		noScale: true,
-// 		min: 0.1
-// 	},
-// 	{
-// 		stat: "bossDmgBase",
-// 		desc: "Base boss damage dealt",
-// 		relatesTo: [
-// 			"bossDmgBase"
-// 		],
-// 		noScale: true,
-// 		min: 0.1
-// 	},
-// 	{
-// 		stat: "playerDmgMult",
-// 		desc: "Multiplier for player damage dealt",
-// 		relatesTo: [
-// 			"statMult"
-// 		],
-// 		noScale: true
-// 	},
-// 	{
-// 		stat: "mobDmgMult",
-// 		desc: "Multiplier for regular mob damage dealt",
-// 		relatesTo: [
-// 			"statMult"
-// 		],
-// 		min: 0.1
-// 	},
-// 	{
-// 		stat: "bossDmgMult",
-// 		desc: "Multiplier for boss mob damage dealt",
-// 		relatesTo: [
-// 			"statMult"
-// 		],
-// 		min: 0.1
-// 	},
-// 	{
-// 		stat: "mobHpMult",
-// 		desc: "Multiplier for regular mob hp",
-// 		relatesTo: [
-// 			"statMult"
-// 		],
-// 		min: 0.1
-// 	},
-// 	{
-// 		stat: "bossHpMult",
-// 		desc: "Multiplier for boss hp",
-// 		relatesTo: [
-// 			"statMult"
-// 		],
-// 		min: 0.1
-// 	},
-// 	{
-// 		stat: "globalDmgPercent",
-// 		desc: "Blanket multiplier for all damage types",
-// 		relatesTo: [
-// 			"dmgPercent",
-// 			"physicalPercent",
-// 			"spellPercent",
-// 			"physicalPercent",
-// 			"elementArcanePercent",
-// 			"elementFrostPercent",
-// 			"elementFirePercent",
-// 			"elementHolyPercent",
-// 			"elementPoisonPercent"
-// 		],
-// 		roles: {
-// 			dps: 1
-// 		}
-// 	},
-// 	{
-// 		stat: "globalCritChance",
-// 		desc: "Chance to deal critical damage for all forms of damage",
-// 		relatesTo: [
-// 			"addCritChance"
-// 		],
-// 		max: 100,
-// 		roles: {
-// 			dps: 1
-// 		}
-// 	},
-// 	{
-// 		stat: "attackSpellCritChance",
-// 		desc: "Chance to deal critical damage for all attacks or spells",
-// 		relatesTo: [
-// 			"addAttackCritChance",
-// 			"addSpellCritChance"
-// 		],
-// 		max: 100,
-// 		roles: {
-// 			dps: 1
-// 		}
-// 	},
-// 	{
-// 		stat: "globalCritMultiplier",
-// 		desc: "Multiplier for all forms of critical damage",
-// 		relatesTo: [
-// 			"addCritMultiplier"
-// 		],
-// 		roles: {
-// 			dps: 1
-// 		}
-// 	},
-// 	{
-// 		stat: "attackSpellCritMultiplier",
-// 		desc: "Multiplier for all critical attacks or spells",
-// 		relatesTo: [
-// 			"addAttackCritMultiplier",
-// 			"addSpellCritMultiplier"
-// 		],
-// 		roles: {
-// 			dps: 1
-// 		}
-// 	},
-// 	{
-// 		stat: "baseCritChance",
-// 		desc: "Base crit chance for characters",
-// 		relatesTo: [
-// 			"baseCritChance"
-// 		],
-// 		initial: 1,
-// 		max: 100,
-// 		noScale: true
-// 	},
-// 	{
-// 		stat: "baseCritMultiplier",
-// 		desc: "Base crit multiplier for characters",
-// 		relatesTo: [
-// 			"baseCritMultiplier"
-// 		],
-// 		initial: 150,
-// 		min: 150,
-// 		noScale: true,
-// 		isStatic: true
-// 	},
-// 	//Mitigate
-// 	{
-// 		stat: "elementAllResist",
-// 		desc: "Resistance against all elemental damage",
-// 		relatesTo: [
-// 			"elementAllResist"
-// 		],
-// 		roles: {
-// 			tank: 1,
-// 			dps: 0.3
-// 		}
-// 	},
-// 	{
-// 		stat: "elementResist",
-// 		desc: "Resistance against specific forms of elemental damage",
-// 		relatesTo: [
-// 			"elementArcaneResist",
-// 			"elementFrostResist",
-// 			"elementFireResist",
-// 			"elementHolyResist",
-// 			"elementPoisonResist"
-// 		],
-// 		roles: {
-// 			tank: 1,
-// 			dps: 0.3
-// 		}
-// 	},
-// 	{
-// 		stat: "armor",
-// 		desc: "Mitigates physical damage",
-// 		relatesTo: [
-// 			"armor"
-// 		],
-// 		roles: {
-// 			tank: 1,
-// 			dps: 0.5
-// 		},
-// 		initial: (level * 30)
-// 	},
-// 	{
-// 		stat: "armorEffectMult",
-// 		noScale: true
-// 	},
-// 	//Life
-// 	{
-// 		stat: "playerHpBase",
-// 		desc: "Initial player hp",
-// 		relatesTo: [
-// 			"playerHpBase"
-// 		],
-// 		noScale: true,
-// 		min: 10
-// 	},
-// 	{
-// 		stat: "mobHpBase",
-// 		desc: "Initial mob hp",
-// 		relatesTo: [
-// 			"mobHpBase"
-// 		],
-// 		noScale: true,
-// 		min: 1
-// 	},
-// 	{
-// 		stat: "bossHpBase",
-// 		desc: "Initial boss hp",
-// 		relatesTo: [
-// 			"bossHpBase"
-// 		],
-// 		noScale: true,
-// 		min: 10
-// 	},
-// 	{
-// 		stat: "vit",
-// 		desc: "Grants extra hp",
-// 		relatesTo: [
-// 			"vit"
-// 		],
-// 		roles: {
-// 			tank: 1,
-// 			dps: 0.3
-// 		}
-// 	},
-// 	{
-// 		stat: "vitToHpMultiplier",
-// 		desc: "Defines how much hp a player gets for each point of vit",
-// 		relatesTo: [
-// 			"statScales.vitToHp"
-// 		]
-// 	},
-// 	{
-// 		stat: "regenHp",
-// 		desc: "Regenerates HP per tick",
-// 		relatesTo: [
-// 			"regenHp"
-// 		],
-// 		roles: {
-// 			tank: 1,
-// 			dps: 0.2
-// 		}
-// 	},
-// 	{
-// 		stat: "lifeOnHit",
-// 		desc: "Gains life on physical damage dealt",
-// 		relatesTo: [
-// 			"lifeOnHit"
-// 		],
-// 		roles: {
-// 			tank: 1,
-// 			dps: 0.3
-// 		},
-// 		disabled: true
-// 	},
-// 	//Mana
-// 	{
-// 		stat: "manaMax",
-// 		desc: "Grants extra mana",
-// 		relatesTo: [
-// 			"manaMax"
-// 		],
-// 		disabled: true
-// 	},
-// 	{
-// 		stat: "regenMana",
-// 		desc: "Grants mana per tick",
-// 		relatesTo: [
-// 			"regenMana"
-// 		],
-// 		disabled: true
-// 	},
-// 	//Other
-// 	{
-// 		stat: "attackSpellSpeed",
-// 		desc: "Grants faster attack/cast times",
-// 		relatesTo: [
-// 			"attackSpeed",
-// 			"castSpeed"
-// 		],
-// 		disabled: true
-// 	},
-// 	{
-// 		stat: "statMultPerLevel",
-// 		desc: "Multiplier for all stats per level",
-// 		noScale: true,
-// 		min: 0.1
-// 	}
-// ];
