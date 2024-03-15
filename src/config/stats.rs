@@ -1,11 +1,12 @@
 use std::ops::{Deref, DerefMut};
+use tracing::debug;
 
 use super::{requirements::Role, Config};
 
 const CONFIG: Config = Config::default();
 const LEVEL: usize = CONFIG.level_min;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Stat {
     pub stat: &'static str,
     pub desc: &'static str,
@@ -16,10 +17,22 @@ pub struct Stat {
     pub initial: Option<usize>,
     pub min: Option<f32>,
     pub disabled: bool,
-    pub is_static: bool,
+    pub value: f32,
 }
 
-#[derive(Debug)]
+impl PartialEq for Stat {
+    fn eq(&self, other: &Self) -> bool {
+        self.stat == other.stat
+    }
+}
+
+impl PartialEq<str> for &Stat {
+    fn eq(&self, other: &str) -> bool {
+        self.stat == other
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum StaticRelations {
     One([&'static str; 1]),
     Two([&'static str; 2]),
@@ -30,6 +43,54 @@ pub enum StaticRelations {
 
 #[derive(Debug)]
 pub struct Stats(pub Vec<Stat>);
+
+impl Stats {
+    pub fn get(
+        &self,
+        statName: &str,
+        level: Option<usize>,
+        tier: Option<&str>,
+        role: Option<Role>,
+    ) -> f32 {
+        let node = &self.0;
+        let found_stat = self
+            .0
+            .iter()
+            .find(|x| x.stat == statName)
+            .expect("Should be there");
+
+        let mut res = found_stat.value;
+
+        if !found_stat.no_scale && level.is_some() {
+            res *= level.unwrap() as f32
+                * node
+                    .iter()
+                    .find(|x| x == "statMultPerLevel")
+                    .expect("statMultPerLevel to exist")
+                    .value as f32;
+        }
+
+        match (found_stat.roles, tier) {
+            (Some(roles), Some(tier)) => {
+                res *= CONFIG.pieces_of_gear as f32
+                    * (CONFIG.useful_stats_per_gear_piece.get(tier)
+                        / self.0.iter().filter(|s| s.roles == role).count() as f32)
+                    * CONFIG.roll_perfection_of_stats.get(tier);
+            }
+            other => {
+                debug!("Stats get other condition: {other:?}");
+            }
+        }
+
+        if let Some(max) = found_stat.max {
+            if res > max as f32 {
+                res = max as f32;
+            }
+        }
+
+        return res;
+    }
+}
 
 impl Deref for Stats {
     type Target = [Stat];
@@ -202,7 +263,6 @@ impl Default for Stats {
                 initial: Some(150),
                 min: Some(150.),
                 no_scale: true,
-                is_static: true,
                 ..Default::default()
             },
             //Mitigate

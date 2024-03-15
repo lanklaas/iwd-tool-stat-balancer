@@ -1,8 +1,14 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Role {
     Dps(usize),
     Tank(usize),
     Both { dps: f32, tank: usize },
+}
+
+impl PartialEq for Role {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(self, other)
+    }
 }
 
 #[derive(Debug)]

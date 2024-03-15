@@ -1,5 +1,7 @@
 pub mod build_node;
 pub mod evolve_node;
+pub mod produce_offspring;
+pub mod set_node_fitness;
 // /* eslint-disable no-console */
 // //Config
 // const config = require('../config');
