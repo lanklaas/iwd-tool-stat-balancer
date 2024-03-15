@@ -48,105 +48,152 @@ pub fn get_player_dps(
     (dmg / TICKS_TAKEN_TO_DEAL_DMG_BASE) * TICKS_PER_SECOND
 }
 
-// const getMobDps = (stats, level, tier, role) => {
-// 	let dmg = stats.getMob("mobDmgBase", level);
-// 	dmg *= stats.getMob("mobDmgMult", level);
+pub fn get_mob_dps(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let mut dmg = stats.get("mobDmgBase", level, tier, role);
 
-// 	const armorMultiplier = Math.max(
-// 		0.5 + Math.max((1 - ((stats.get("armor", level, tier, role) || 0) / (level * 50))) / 2, -0.5),
-// 		0.5
-// 	) * 1;
+    let mob_dmg_mult = stats.get_mob("mobDmgMult", level);
+    dmg *= mob_dmg_mult;
 
-// 	dmg *= armorMultiplier;
+    let armor_multiplier = {
+        let armor_stat = stats.get("armor", level, tier, role);
+        let max_armor = f32::max(
+            0.5,
+            0.5 + f32::max(
+                (1.0 - (armor_stat / (level.unwrap() as f32 * 50.0))) / 2.0,
+                -0.5,
+            ),
+        );
+        max_armor * 1.0
+    };
 
-// 	const avoidChance = stats.get("avoidChance", level, tier, role);
+    dmg *= armor_multiplier;
 
-// 	dmg = dmg * (1 - (avoidChance / 100));
+    let avoid_chance = stats.get("avoidChance", level, tier, role);
 
-// 	const dps = (dmg / ticksTakenToDealDmgBase) * ticksPerSecond;
+    dmg *= 1.0 - (avoid_chance / 100.0);
 
-// 	return dps;
-// };
+    (dmg / TICKS_TAKEN_TO_DEAL_DMG_BASE) * TICKS_PER_SECOND
+}
 
-// const getBossDps = (stats, level, tier, role) => {
-// 	let dmg = stats.getMob("bossDmgBase", level);
-// 	dmg *= stats.getMob("bossDmgMult", level);
+pub fn get_boss_dps(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let mut dmg = stats.get("bossDmgBase", level, tier, role);
 
-// 	const armorMultiplier = Math.max(
-// 		0.5 + Math.max((1 - ((stats.get("armor", level, tier, role) || 0) / (level * 50))) / 2, -0.5),
-// 		0.5
-// 	);
+    let mob_dmg_mult = stats.get_mob("bossDmgMult", level);
+    dmg *= mob_dmg_mult;
 
-// 	dmg *= armorMultiplier;
+    let armor_multiplier = {
+        let armor_stat = stats.get("armor", level, tier, role);
+        let max_armor = f32::max(
+            0.5,
+            0.5 + f32::max(
+                (1.0 - (armor_stat / (level.unwrap() as f32 * 50.0))) / 2.0,
+                -0.5,
+            ),
+        );
+        max_armor * 1.0
+    };
 
-// 	const avoidChance = stats.get("avoidChance", level, tier, role);
+    dmg *= armor_multiplier;
 
-// 	dmg = dmg * (1 - (avoidChance / 100));
+    let avoid_chance = stats.get("avoidChance", level, tier, role);
 
-// 	const dps = (dmg / ticksTakenToDealDmgBase) * ticksPerSecond;
+    dmg *= 1.0 - (avoid_chance / 100.0);
 
-// 	return dps;
-// };
+    (dmg / TICKS_TAKEN_TO_DEAL_DMG_BASE) * TICKS_PER_SECOND
+}
 
 // //Hp
-// const getPlayerHp = (stats, level, tier, role) => {
-// 	let hp = stats.get("playerHpBase");
+pub fn get_player_hp(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let mut hp = stats.get_unscaled("playerHpBase");
 
-// 	hp += stats.get("vit", level, tier, role) * stats.get("vitToHpMultiplier", level, tier, role);
+    hp += stats.get("vit", level, tier, role) * stats.get("vitToHpMultiplier", level, tier, role);
 
-// 	return hp;
-// };
+    hp
+}
 
-// const getMobHp = (stats, level, tier, role) => {
-// 	let hp = stats.getMob("mobHpBase", level, tier, role);
+pub fn get_mob_hp(stats: &Stats, level: Option<usize>) -> f32 {
+    let mut hp = stats.get_unscaled("mobHpBase");
 
-// 	hp *= stats.getMob("mobHpMult", level, tier, role);
+    hp *= stats.get_mob("mobHpMult", level);
 
-// 	return hp;
-// };
+    hp
+}
 
-// const getBossHp = (stats, level, tier, role) => {
-// 	let hp = stats.getMob("bossHpBase", level, tier, role);
+pub fn get_boss_hp(stats: &Stats, level: Option<usize>) -> f32 {
+    let mut hp = stats.get_unscaled("bossHpBase");
 
-// 	hp *= stats.getMob("bossHpMult", level);
+    hp *= stats.get_mob("bossHpMult", level);
 
-// 	return hp;
-// };
+    hp
+}
 
 // //Calculations
-// const getSecondsToKillMob = (stats, level, tier, role) => {
-// 	const dps = getPlayerDps(stats, level, tier, role);
-// 	const hp = getMobHp(stats, level, tier, role);
+pub fn get_seconds_to_kill_mob(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let dps = get_player_dps(stats, level, tier, role);
+    let hp = get_mob_hp(stats, level);
 
-// 	return hp / dps;
-// };
+    hp / dps
+}
 
-// const getSecondsToKillBoss = (stats, level, tier, role) => {
-// 	const dps = getPlayerDps(stats, level, tier, role);
-// 	let hp = getBossHp(stats, level, tier, role);
+pub fn get_seconds_to_kill_boss(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let dps = get_player_dps(stats, level, tier, role);
+    let hp = get_boss_hp(stats, level);
 
-// 	return hp / dps;
-// };
+    hp / dps
+}
 
-// const getSecondsToBeKilledByMob = (stats, level, tier, role) => {
-// 	const dps = getMobDps(stats, level, tier, role);
-// 	const hp = getPlayerHp(stats, level, tier, role);
-// 	const regenPerSec = stats.get("regenHp", level, tier, role) * ticksPerSecond;
+pub fn get_seconds_to_be_killed_by_mob(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let dps = get_mob_dps(stats, level, tier, role);
+    let hp = get_player_hp(stats, level, tier, role);
 
-// 	const res = hp / Math.max(0.0000001, (dps - regenPerSec));
+    let regen_per_sec = stats.get("regenHp", level, tier, role) * TICKS_PER_SECOND;
 
-// 	return res;
-// };
+    hp / f32::max(0.000001, dps - regen_per_sec)
+}
 
-// const getSecondsToBeKilledByBoss = (stats, level, tier, role) => {
-// 	const dps = getBossDps(stats, level, tier, role);
-// 	const hp = getPlayerHp(stats, level, tier, role);
-// 	const regenPerSec = stats.get("regenHp", level, tier, role) * ticksPerSecond;
+pub fn get_seconds_to_be_killed_by_boss(
+    stats: &Stats,
+    level: Option<usize>,
+    tier: Option<&str>,
+    role: Option<Role>,
+) -> f32 {
+    let dps = get_boss_dps(stats, level, tier, role);
+    let hp = get_player_hp(stats, level, tier, role);
 
-// 	const res = hp / Math.max(0.0000001, (dps - regenPerSec));
+    let regen_per_sec = stats.get("regenHp", level, tier, role) * TICKS_PER_SECOND;
 
-// 	return res;
-// };
+    hp / f32::max(0.000001, dps - regen_per_sec)
+}
 
 // const heuristicHandlers = {
 // 	secondsToKillMob: getSecondsToKillMob,

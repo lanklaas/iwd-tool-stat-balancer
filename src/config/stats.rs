@@ -47,7 +47,7 @@ pub struct Stats(pub Vec<Stat>);
 impl Stats {
     pub fn get(
         &self,
-        statName: &str,
+        stat_name: &str,
         level: Option<usize>,
         tier: Option<&str>,
         role: Option<Role>,
@@ -56,7 +56,7 @@ impl Stats {
         let found_stat = self
             .0
             .iter()
-            .find(|x| x.stat == statName)
+            .find(|x| x.stat == stat_name)
             .expect("Should be there");
 
         let mut res = found_stat.value;
@@ -67,11 +67,11 @@ impl Stats {
                     .iter()
                     .find(|x| x == "statMultPerLevel")
                     .expect("statMultPerLevel to exist")
-                    .value as f32;
+                    .value;
         }
 
         match (found_stat.roles, tier) {
-            (Some(roles), Some(tier)) => {
+            (Some(_roles), Some(tier)) => {
                 res *= CONFIG.pieces_of_gear as f32
                     * (CONFIG.useful_stats_per_gear_piece.get(tier)
                         / self.0.iter().filter(|s| s.roles == role).count() as f32)
@@ -88,7 +88,33 @@ impl Stats {
             }
         }
 
-        return res;
+        res
+    }
+
+    pub fn get_mob(&self, stat_name: &str, level: Option<usize>) -> f32 {
+        let node = &self.0;
+        let found_stat = self
+            .0
+            .iter()
+            .find(|x| x.stat == stat_name)
+            .expect("Should be there");
+
+        let mut res = found_stat.value;
+
+        if !found_stat.no_scale && level.is_some() {
+            res *= level.unwrap() as f32
+                * node
+                    .iter()
+                    .find(|x| x == "statMultPerLevel")
+                    .expect("statMultPerLevel to exist")
+                    .value;
+        }
+
+        res
+    }
+
+    pub fn get_unscaled(&self, stat_name: &str) -> f32 {
+        self.get(stat_name, None, None, None)
     }
 }
 
