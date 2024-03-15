@@ -1,17 +1,19 @@
 use crate::config::{
     self,
-    requirements::{Requirements, Role},
+    requirements::{Requirements, Role, Requirement},
     stats::Stats,
     Config,
 };
+
+use super::build_node::Node;
 
 //Imports
 const CONFIG: Config = config::Config::default();
 
 const TICKS_TAKEN_TO_DEAL_DMG_BASE: f32 = CONFIG.ticks_taken_to_deal_dmg_base as f32;
 const TICKS_PER_SECOND: f32 = CONFIG.ticks_per_second as f32;
-const LEVEL_MIN: f32 = CONFIG.level_min as f32;
-const LEVEL_MAX: f32 = CONFIG.level_max as f32;
+const LEVEL_MIN: usize= CONFIG.level_min;
+const LEVEL_MAX: usize = CONFIG.level_max;
 const TIERS: [&str; 4] = CONFIG.tiers;
 const ROLES: [&str; 2] = CONFIG.roles;
 
@@ -195,45 +197,52 @@ pub fn get_seconds_to_be_killed_by_boss(
     hp / f32::max(0.000001, dps - regen_per_sec)
 }
 
-// const heuristicHandlers = {
-// 	secondsToKillMob: getSecondsToKillMob,
-// 	secondsToKillBoss: getSecondsToKillBoss,
-// 	secondsToBeKilledByMob: getSecondsToBeKilledByMob,
-// 	secondsToBeKilledByBoss: getSecondsToBeKilledByBoss
-// };
+const heuristicHandlers: [(&str,for<'a,'b> fn(&'a Stats,Option<usize>,Option<&'b str>,Option<Role>) -> f32);4] = [
+	("secondsToKillMob", get_seconds_to_kill_mob),
+	("secondsToKillBoss", get_seconds_to_kill_boss),
+	("secondsToBeKilledByMob", get_seconds_to_be_killed_by_mob),
+	("secondsToBeKilledByBoss", get_seconds_to_be_killed_by_boss)
+];
 
 // //Method
-// const setNodeFitness = node => {
-// 	const { stats } = node;
+pub fn set_node_fitness(node: Node) {
+	let Node { stats,.. } = node;
 
-// 	const fitnessResult = [];
+	let fitnessResult = vec![];
 
-// 	let fitness = 0;
+	let fitness = 0;
 
-// 	roles.forEach(role => {
-// 		tiers.forEach(tier => {
-// 			Object.entries(configRequirements).forEach(([rqr, rqrConfig]) => {
-// 				if (rqrConfig[tier]?.[role] === undefined)
-// 					return;
+	ROLES.iter().for_each(|role| {
+		TIERS.iter().for_each(|tier| {
+            CONFIG_REQUIREMENTS.iter().for_each(|Requirement{name: rqr, tiers: rqrConfig}| {
+                let Some(found_tier) = rqrConfig.iter().find(|t|t.name == *tier) else {
+                    return;
+                };
 
-// 				for (let level = levelMin; level <= levelMax; level++) {
-// 					const res = heuristicHandlers[rqr](stats, level, tier, role);
+				if found_tier.role.is_none() {
+					return;
+                }
 
-// 					fitness += Math.abs(rqrConfig[tier][role] - res);
+                for level in LEVEL_MIN..=LEVEL_MAX {
 
-// 					fitnessResult.push({
-// 						heuristic: rqr,
-// 						level,
-// 						tier,
-// 						role,
-// 						actual: res,
-// 						req: rqrConfig[tier][role]
-// 					});
-// 				}
-// 			});
-// 		});
-// 	});
+                
+					let res = heuristicHandlers.iter().find(|(name,_)|name==rqr).expect("To have heuristics").1(&stats, Some(level), Some(*tier), role);
 
+					fitness += Math.abs(rqrConfig[tier][role] - res);
+
+					fitnessResult.push({
+						heuristic: rqr,
+						level,
+						tier,
+						role,
+						actual: res,
+						req: rqrConfig[tier][role]
+					});
+				}
+			});
+		});
+	});
+}
 // 	node.fitness = fitness;
 
 // 	const getActual = (heuristic, tier, role) => {

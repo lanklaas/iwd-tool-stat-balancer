@@ -45,13 +45,16 @@ pub enum StaticRelations {
 pub struct Stats(pub Vec<Stat>);
 
 impl Stats {
-    pub fn get(
+    pub fn get<R>(
         &self,
         stat_name: &str,
         level: Option<usize>,
         tier: Option<&str>,
-        role: Option<Role>,
-    ) -> f32 {
+        role: Option<R>,
+    ) -> f32
+    where
+        std::option::Option<R>: std::cmp::PartialEq<std::option::Option<Role>>,
+    {
         let node = &self.0;
         let found_stat = self
             .0
@@ -71,10 +74,10 @@ impl Stats {
         }
 
         match (found_stat.roles, tier) {
-            (Some(_roles), Some(tier)) => {
+            (Some(roles), Some(tier)) => {
                 res *= CONFIG.pieces_of_gear as f32
                     * (CONFIG.useful_stats_per_gear_piece.get(tier)
-                        / self.0.iter().filter(|s| s.roles == role).count() as f32)
+                        / self.0.iter().filter(|s| role == s.roles).count() as f32)
                     * CONFIG.roll_perfection_of_stats.get(tier);
             }
             other => {
