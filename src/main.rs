@@ -1,4 +1,4 @@
-pub mod config;
+// pub mod config;
 pub mod genetic;
 fn main() {
     unimplemented!();

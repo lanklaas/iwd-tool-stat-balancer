@@ -1,7 +1,10 @@
+use serde_json::Value;
 use std::ops::{Deref, DerefMut};
 use tracing::debug;
 
-use super::{requirements::Role, Config};
+use super::Config;
+
+pub type LibFloat = f64;
 
 const CONFIG: Config = Config::default();
 const LEVEL: usize = CONFIG.level_min;
@@ -12,12 +15,12 @@ pub struct Stat {
     pub desc: &'static str,
     pub relates_to: Option<StaticRelations>,
     pub max: Option<usize>,
-    pub roles: Option<Role>,
+    pub roles: &'static Value,
     pub no_scale: bool,
     pub initial: Option<usize>,
     pub min: Option<f32>,
     pub disabled: bool,
-    pub value: f32,
+    pub value: f64,
 }
 
 impl PartialEq for Stat {
@@ -50,10 +53,10 @@ impl Stats {
         stat_name: &str,
         level: Option<usize>,
         tier: Option<&str>,
-        role: Option<R>,
+        role: Option<&str>,
     ) -> f32
-    where
-        std::option::Option<R>: std::cmp::PartialEq<std::option::Option<Role>>,
+// where
+    //     std::option::Option<R>: std::cmp::PartialEq<std::option::Option<Role>>,
     {
         let node = &self.0;
         let found_stat = self
@@ -65,7 +68,7 @@ impl Stats {
         let mut res = found_stat.value;
 
         if !found_stat.no_scale && level.is_some() {
-            res *= level.unwrap() as f32
+            res *= level.unwrap() as f64
                 * node
                     .iter()
                     .find(|x| x == "statMultPerLevel")
